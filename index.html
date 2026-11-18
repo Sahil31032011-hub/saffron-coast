@@ -156,7 +156,11 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
 .card{width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin:auto}
 #menu h1{font-family:var(--font-d);font-weight:400;font-size:clamp(52px,11vw,84px);line-height:.9;letter-spacing:2px;margin:0;color:var(--saffron)}
 #menu .tag{margin:6px 0 16px;color:var(--dim)}
-.cars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cars{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+#mcash{font-family:var(--font-d);font-size:24px;letter-spacing:1px;color:#e9f7d0;margin:0 0 10px}
+#mmsg{min-height:16px;margin:10px 0 0;font-size:12px;color:var(--saffron)}
+.cc .pr{font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px}
+.cc .pr.buy{color:var(--saffron)}
 .cc{background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:8px;color:var(--text);text-align:left;cursor:pointer;min-width:0}
 .cc.sel{border-color:var(--saffron)}
 .cc canvas{width:100%;height:auto;display:block;border-radius:6px;background:#2d313d}
@@ -234,6 +238,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div class="gh"><h2>Garage</h2><span id="gcash"></span></div>
       <canvas id="gprev" width="480" height="150"></canvas>
       <div class="tabs">
+        <button type="button" data-t="cars">Cars</button>
         <button type="button" data-t="paint" class="on">Paint</button>
         <button type="button" data-t="trail">Drift colour</button>
         <button type="button" data-t="up">Upgrades</button>
@@ -267,7 +272,9 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
     <div class="card">
       <h1>Saffron<br>Coast</h1>
       <p class="tag">An open-city driving sandbox. Take jobs, dodge traffic, shake the police.</p>
+      <div id="mcash"></div>
       <div class="cars" id="cars"></div>
+      <p id="mmsg"></p>
       <button class="go" id="start" type="button">START DRIVING</button>
       <ul class="help">
         <li><b>W / ↑</b> gas &nbsp; <b>S / ↓</b> brake, reverse</li>
@@ -367,7 +374,11 @@ function pedPos(p){
 var CARS={
   sprint:{name:'Sprint',kind:'sport',L:50,W:24,color:'#ff4d5e',max:440,acc:540,steer:2.8,grip:7.5,hp:100,speed:.95,handling:.8,armor:.35},
   cruiser:{name:'Cruiser',kind:'sedan',L:52,W:25,color:'#27d3b5',max:370,acc:420,steer:2.6,grip:8.5,hp:140,speed:.75,handling:.7,armor:.6},
-  rover:{name:'Rover',kind:'suv',L:54,W:28,color:'#ff9d2e',max:340,acc:380,steer:2.35,grip:9.5,hp:200,speed:.65,handling:.55,armor:.95}
+  rover:{name:'Rover',kind:'suv',L:54,W:28,color:'#ff9d2e',max:340,acc:380,steer:2.35,grip:9.5,hp:200,speed:.65,handling:.55,armor:.95},
+  torque:{name:'Torque GT',kind:'sport',stripe:false,L:52,W:24,color:'#2b6bff',max:420,acc:500,steer:2.8,grip:8.2,hp:130,speed:.82,handling:.88,armor:.5,price:1500,tag:'Sharp luxury coupe'},
+  brawler:{name:'Brawler V8',kind:'muscle',L:56,W:26,color:'#262b36',max:455,acc:610,steer:2.4,grip:6.8,hp:160,speed:.9,handling:.5,armor:.7,price:2200,tag:'Loud muscle car'},
+  raptor:{name:'Raptor SV',kind:'super',L:56,W:25,color:'#e8e000',max:520,acc:650,steer:2.9,grip:7.3,hp:90,speed:.97,handling:.75,armor:.25,price:4000,tag:'Wedge-shaped supercar'},
+  phantom:{name:'Phantom X',kind:'super',L:58,W:25,color:'#8a4dff',max:570,acc:720,steer:3.0,grip:7.8,hp:85,speed:1,handling:.92,armor:.2,price:7500,tag:'Fastest car in the city'}
 };
 var POLICE={name:'Police',kind:'police',L:52,W:25,color:'#f4f6fb',max:350,acc:480,steer:2.7,grip:8,hp:9999};
 var TKINDS=[
@@ -380,7 +391,15 @@ function drawVeh(g,v,t){
   var s=v.spec,L=s.L,Wd=s.W,k=s.kind;
   g.save();g.translate(v.x,v.y);g.rotate(v.a);
   g.fillStyle='rgba(0,0,0,.3)';rr(g,-L/2+2,-Wd/2+3,L,Wd,6);g.fill();
-  if(k==='rick'){
+  if(k==='super'){
+    g.fillStyle=s.color;g.beginPath();g.moveTo(-L/2,-Wd/2);g.lineTo(L*.08,-Wd/2);g.lineTo(L/2,-Wd*.2);g.lineTo(L/2,Wd*.2);g.lineTo(L*.08,Wd/2);g.lineTo(-L/2,Wd/2);g.closePath();g.fill();
+    g.fillStyle='rgba(0,0,0,.35)';g.fillRect(-L*.08,-Wd/2+1,L*.22,3);g.fillRect(-L*.08,Wd/2-4,L*.22,3);
+    g.fillStyle='#10161f';rr(g,-L*.16,-Wd/2+5,L*.34,Wd-10,6);g.fill();
+    g.fillStyle='rgba(255,255,255,.18)';rr(g,-L*.1,-Wd/2+7,L*.2,Wd-14,4);g.fill();
+    g.fillStyle='#14181f';g.fillRect(-L/2-2,-Wd/2-2,6,Wd+4);g.fillRect(-L/2+2,-Wd/2-2,2,Wd+4);
+    g.fillStyle='#fff3b8';g.fillRect(L/2-6,-Wd*.2+1,5,3);g.fillRect(L/2-6,Wd*.2-4,5,3);
+    g.fillStyle='#d8283a';g.fillRect(-L/2+4,-Wd/2+3,2.5,Wd-6);
+  }else if(k==='rick'){
     g.fillStyle='#1a1d25';g.fillRect(L/2-8,-Wd/2+2,6,3);g.fillRect(L/2-8,Wd/2-5,6,3);g.fillRect(-L/2,-Wd/2+2,8,4);g.fillRect(-L/2,Wd/2-6,8,4);
     g.fillStyle=s.color;rr(g,-L/2+2,-Wd/2+1,L-4,Wd-2,8);g.fill();
     g.fillStyle='#1d2a1e';rr(g,-L/2+7,-Wd/2+3,L*0.55,Wd-6,4);g.fill();
@@ -388,7 +407,8 @@ function drawVeh(g,v,t){
     g.fillStyle='#ffe9a8';g.fillRect(L/2-5,-2,3,4);
   }else{
     g.fillStyle=s.color;rr(g,-L/2,-Wd/2,L,Wd,k==='sport'?9:k==='van'?4:6);g.fill();
-    if(k==='sport'){g.fillStyle='rgba(255,255,255,.85)';g.fillRect(-L/2+3,-2.5,L-6,2);g.fillRect(-L/2+3,.5,L-6,2);g.fillStyle='#14181f';g.fillRect(-L/2-1,-Wd/2+2,3,Wd-4)}
+    if(k==='muscle'){g.fillStyle='rgba(255,255,255,.85)';g.fillRect(L*.04,-4.5,L*.46,3);g.fillRect(L*.04,1.5,L*.46,3);g.fillRect(-L/2+2,-4.5,L*.22,3);g.fillRect(-L/2+2,1.5,L*.22,3)}
+    if(k==='sport'&&s.stripe!==false){g.fillStyle='rgba(255,255,255,.85)';g.fillRect(-L/2+3,-2.5,L-6,2);g.fillRect(-L/2+3,.5,L-6,2);g.fillStyle='#14181f';g.fillRect(-L/2-1,-Wd/2+2,3,Wd-4)}
     var cx=-L*.2,cw=L*.4;
     if(k==='suv'){cx=-L*.3;cw=L*.52}
     if(k==='van'){cx=-L*.38;cw=L*.62}
@@ -415,7 +435,7 @@ var player=null,cops=[],traffic=[],parts=[],skids=[],cashes=[];
 var cam={x:0,y:0,rot:-Math.PI/2};
 var keys={},tk={};
 
-var G={color:null,trail:'smoke',paints:{stock:1},trails:{smoke:1},custom:false,lv:{engine:0,tires:0,armor:0,nitro:0,tank:0}};
+var G={color:null,trail:'smoke',paints:{stock:1},trails:{smoke:1},custom:false,lv:{engine:0,tires:0,armor:0,nitro:0,tank:0},cars:{sprint:1,cruiser:1,rover:1},car:'sprint'};
 function load(){
   S.cash=300;
   try{
@@ -425,11 +445,13 @@ function load(){
     if(o&&o.G){var g=o.G;
       if(g.color===null||typeof g.color==='string')G.color=g.color;
       if(typeof g.trail==='string')G.trail=g.trail;
-      if(g.paints)G.paints=g.paints;if(g.trails)G.trails=g.trails;G.custom=!!g.custom;
+      if(g.paints)G.paints=g.paints;if(g.cars)G.cars=g.cars;if(typeof g.car==='string')G.car=g.car;if(g.trails)G.trails=g.trails;G.custom=!!g.custom;
       if(g.lv)['engine','tires','armor','nitro','tank'].forEach(function(k){if(typeof g.lv[k]==='number')G.lv[k]=Math.max(0,Math.min(5,g.lv[k]))});
     }
   }catch(e){}
   G.paints.stock=1;G.trails.smoke=1;
+  G.cars.sprint=G.cars.cruiser=G.cars.rover=1;if(!CARS[G.car]||!G.cars[G.car])G.car='sprint';
+  S.carKey=G.car;
 }
 function save(){try{localStorage.setItem('saffron-coast-v1',JSON.stringify({cash:S.cash,done:S.done,G:G}))}catch(e){}}
 load();
@@ -915,7 +937,7 @@ var UPS=[
   {id:'nitro',name:'Nitro booster',desc:'Hold Shift or the NOS button for a big speed boost. Each level lasts longer and refills faster.',costs:[300,600,1000,1500,2100]},
   {id:'tank',name:'Fuel tank',desc:'Burns petrol 10% slower per level, so you stop for fuel less often.',costs:[250,450,700,1000,1400]}
 ];
-var garTab='paint';
+var garTab='cars';
 function applyGarage(heal){
   if(!player||!player.spec.base)return;
   var sp=player.spec,b=sp.base,L=G.lv;
@@ -925,6 +947,11 @@ function applyGarage(heal){
   sp.hp=b.hp*(1+.2*L.armor);
   player.hp=heal?sp.hp:Math.min(sp.hp,Math.max(1,frac*sp.hp));
   sp.color=G.color||b.color;
+}
+function setCar(k){
+  var fr=player.hp/player.spec.hp,spec=Object.assign({},CARS[k]);
+  spec.base={max:spec.max,acc:spec.acc,steer:spec.steer,grip:spec.grip,hp:spec.hp,color:spec.color};
+  player.spec=spec;S.carKey=k;G.car=k;applyGarage(false);player.hp=Math.max(1,fr*player.spec.hp);save();
 }
 function gmsg(t){$('gmsg').textContent=t||''}
 function buy(price){
@@ -952,7 +979,18 @@ function renderGarage(){
   Array.prototype.forEach.call(document.querySelectorAll('#gar .tabs button'),function(b){b.classList.toggle('on',b.getAttribute('data-t')===garTab)});
   var body=$('gbody');body.innerHTML='';
   var grid,i;
-  if(garTab==='paint'){
+  if(garTab==='cars'){
+    grid=document.createElement('div');grid.className='ggrid';
+    Object.keys(CARS).forEach(function(k){
+      var c=CARS[k],own=!!G.cars[k],eq=S.carKey===k;
+      grid.appendChild(gItem(c.name,eq?'Driving':own?'Owned':'$'+c.price,eq?'eq':own?'':'buy',c.color,eq,function(){
+        if(eq)return;
+        if(!own&&!buy(c.price))return;
+        G.cars[k]=1;setCar(k);gmsg('');renderGarage();
+      }));
+    });
+    body.appendChild(grid);
+  }else if(garTab==='paint'){
     grid=document.createElement('div');grid.className='ggrid';
     PAINTS.forEach(function(p){
       var own=!!G.paints[p.id],eq=p.col?G.color===p.col:G.color===null;
@@ -1028,25 +1066,33 @@ setTimeout(function(){$('wgo').focus()},50);
 
 /* menu */
 var carCards={};
-(function buildMenu(){
-  var wrap=$('cars');
+function buildMenu(){
+  var wrap=$('cars');wrap.innerHTML='';carCards={};
+  $('mcash').textContent='Cash: $'+S.cash;
   Object.keys(CARS).forEach(function(k){
-    var c=CARS[k],b=document.createElement('button');
+    var c=CARS[k],own=!!G.cars[k],b=document.createElement('button');
     b.type='button';b.className='cc'+(k===S.carKey?' sel':'');b.id='car-'+k;
     var cvp=document.createElement('canvas');cvp.width=240;cvp.height=130;
     var g=cvp.getContext('2d');g.fillStyle='#2d313d';g.fillRect(0,0,240,130);
     g.strokeStyle='rgba(232,193,74,.7)';g.lineWidth=3;g.setLineDash([16,12]);g.beginPath();g.moveTo(0,110);g.lineTo(240,110);g.stroke();g.setLineDash([]);
     g.save();g.translate(0,-6);g.scale(2.1,2.1);drawVeh(g,{x:57,y:34,a:0,spec:c},0);g.restore();
+    if(!own){g.fillStyle='rgba(7,10,18,.5)';g.fillRect(0,0,240,130)}
     b.appendChild(cvp);
     var nm=document.createElement('b');nm.textContent=c.name;b.appendChild(nm);
-    var sm=document.createElement('small');sm.textContent={sport:'Fast and twitchy',sedan:'Balanced all-rounder',suv:'Heavy and tough'}[c.kind];b.appendChild(sm);
+    var sm=document.createElement('small');sm.textContent=c.tag||{sport:'Fast and twitchy',sedan:'Balanced all-rounder',suv:'Heavy and tough'}[c.kind];b.appendChild(sm);
+    var pr=document.createElement('div');pr.className='pr'+(own?'':' buy');pr.textContent=own?(k===S.carKey?'Selected':'Owned'):'Buy $'+c.price;b.appendChild(pr);
     [['Speed',c.speed],['Grip',c.handling],['Armor',c.armor]].forEach(function(r){
       var d=document.createElement('div');d.className='st';d.innerHTML='<span>'+r[0]+'</span><i style="--w:'+Math.round(r[1]*100)+'%"></i>';b.appendChild(d);
     });
-    b.addEventListener('click',function(){S.carKey=k;Object.keys(carCards).forEach(function(q){carCards[q].classList.toggle('sel',q===k)})});
+    b.addEventListener('click',function(){
+      if(own){S.carKey=k;G.car=k;save();$('mmsg').textContent='';buildMenu()}
+      else if(S.cash>=c.price){S.cash-=c.price;G.cars[k]=1;S.carKey=k;G.car=k;save();$('mmsg').textContent='You bought the '+c.name+'.';buildMenu()}
+      else $('mmsg').textContent='Not enough cash for the '+c.name+'. You need $'+c.price+'. Earn more in the game.';
+    });
     carCards[k]=b;wrap.appendChild(b);
   });
-})();
+}
+buildMenu();
 
 function newGame(){
   traffic=[];cops=[];parts=[];skids=[];
