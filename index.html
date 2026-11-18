@@ -534,12 +534,14 @@ function updFuel(dt,psp){
     if(free)step=Math.min(step,.25-S.fuel);
     if(step>0&&(free||S.cash>=1)){
       S.fuel+=step;
-      if(!free){S.fuelPay+=step*100;var w=Math.floor(S.fuelPay);if(w>0){S.cash=Math.max(0,S.cash-w);S.fuelPay-=w}}
-      if(!S.refuelling){S.refuelling=true;toast(free?'The owner gives you a little petrol for free.':'Refuelling...','good')}
+      if(!free){S.fuelPay+=step*100;var w=Math.floor(S.fuelPay);if(w>0){var pw=Math.min(w,S.cash);S.cash-=pw;S.fuelPay-=w;S.refuelCost=(S.refuelCost||0)+pw;S.cashT=.3}}
+      if(!S.refuelling){S.refuelling=true;S.refuelCost=0;toast(free?'The owner gives you a little petrol for free.':'Refuelling...','good')}
     }else if(!free&&S.cash<1&&S.pumpMsg<=0){S.pumpMsg=4;toast('Not enough cash for petrol. Earn some from jobs, $ pickups and drifting.','bad')}
   }else if(S.refuelling){
     S.refuelling=false;save();
-    if(S.fuel>=.999)toast('Tank full','good');
+    var rc=S.refuelCost||0;S.refuelCost=0;
+    if(S.fuel>=.999)toast('Tank full. Petrol cost $'+rc+'.','good');
+    else if(rc>0)toast('Refuelled to '+Math.round(S.fuel*100)+'%. Petrol cost $'+rc+'.','good');
   }
   if(S.fuel<=0&&S.fuelWarn<2){S.fuelWarn=2;toast('Out of fuel. Crawl to a petrol pump, shown in yellow on the map.','bad')}
   else if(S.fuel<.2&&S.fuel>0&&S.fuelWarn<1){S.fuelWarn=1;toast('Low fuel. Find a petrol pump.','bad')}
