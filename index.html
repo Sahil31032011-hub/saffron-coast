@@ -480,7 +480,7 @@ function sparks(x,y,n){for(var i=0;i<n;i++)addPart(x,y,rnd(-160,160),rnd(-160,16
 
 function hurt(v,amt){
   if(v!==player)return;
-  v.hp=Math.max(0,v.hp-amt);S.shake=Math.min(14,S.shake+amt*.6);
+  v.hp=Math.max(0,v.hp-amt);S.shake=Math.min(14,S.shake+amt*.6);if(amt>1.5)thump(amt);
 }
 
 function collideSolids(v){
@@ -801,19 +801,82 @@ function updHud(){
 }
 
 /* ---------- audio ---------- */
-var actx=null,osc=null,og=null,soundOn=false;
+var actx=null,mg=null,osc=null,osc2=null,og=null,scG=null,scF=null,wG=null,nG=null,noiseBuf=null,soundOn=false,lastThump=-9;
 function initAudio(){
   if(actx)return;
   try{
     var AC=window.AudioContext||window.webkitAudioContext;actx=new AC();
-    osc=actx.createOscillator();osc.type='sawtooth';var lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;
-    og=actx.createGain();og.gain.value=0;osc.connect(lp);lp.connect(og);og.connect(actx.destination);osc.start();
+    mg=actx.createGain();mg.gain.value=1;mg.connect(actx.destination);
+    noiseBuf=actx.createBuffer(1,actx.sampleRate*2,actx.sampleRate);
+    var nd=noiseBuf.getChannelData(0);for(var i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+    function noiseSrc(){var n=actx.createBufferSource();n.buffer=noiseBuf;n.loop=true;n.start();return n}
+    /* engine */
+    var lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=520;
+    og=actx.createGain();og.gain.value=0;
+    osc=actx.createOscillator();osc.type='sawtooth';osc.frequency.value=50;
+    osc2=actx.createOscillator();osc2.type='square';osc2.frequency.value=100;
+    var g2=actx.createGain();g2.gain.value=.35;
+    osc.connect(lp);osc2.connect(g2);g2.connect(lp);lp.connect(og);og.connect(mg);osc.start();osc2.start();
+    /* tyre screech */
+    var sb=actx.createBiquadFilter();sb.type='bandpass';sb.Q.value=7;sb.frequency.value=2200;scF=sb;
+    scG=actx.createGain();scG.gain.value=0;noiseSrc().connect(sb);sb.connect(scG);scG.connect(mg);
+    /* wind */
+    var wf=actx.createBiquadFilter();wf.type='highpass';wf.frequency.value=700;
+    wG=actx.createGain();wG.gain.value=0;noiseSrc().connect(wf);wf.connect(wG);wG.connect(mg);
+    /* nitro whoosh */
+    var nf=actx.createBiquadFilter();nf.type='bandpass';nf.Q.value=1.2;nf.frequency.value=900;
+    nG=actx.createGain();nG.gain.value=0;noiseSrc().connect(nf);nf.connect(nG);nG.connect(mg);
   }catch(e){actx=null}
 }
 function setSound(on){
   soundOn=on;$('snd').textContent='Sound: '+(on?'on':'off');
   if(on){initAudio();if(actx&&actx.state==='suspended')actx.resume()}
-  if(!on&&og)og.gain.value=0;
+  if(mg)mg.gain.value=on?1:0;
+}
+function audioSilence(){
+  if(!actx)return;var t=actx.currentTime;
+  og.gain.setTargetAtTime(0,t,.05);scG.gain.setTargetAtTime(0,t,.05);wG.gain.setTargetAtTime(0,t,.05);nG.gain.setTargetAtTime(0,t,.05);
+}
+function audioUpdate(inp,psp){
+  if(!actx||!soundOn)return;
+  var t=actx.currentTime,gs=clamp(psp/(player.spec.max*1.05),0,1.5)*5,gear=Math.min(4,Math.floor(gs)),fr=gear>=4?1:gs-gear;
+  var f=52+fr*105+gear*7+(S.nosOn?30:0)+(S.fuel<=0?-12:0);
+  osc.frequency.setTargetAtTime(f,t,.06);osc2.frequency.setTargetAtTime(f*2.01,t,.06);
+  og.gain.setTargetAtTime(.02+.03*(inp.thr?1:.25)+(S.nosOn?.02:0)+Math.min(.015,psp/20000),t,.06);
+  var slide=(player.slip>95||(inp.hb&&psp>110))&&psp>60,scr=0;
+  if(slide)scr=clamp((Math.max(player.slip||0,inp.hb?psp*.55:0)-60)/190,.3,1);
+  if(inp.brk&&(player.fwd||0)>160)scr=Math.max(scr,clamp(((player.fwd||0)-140)/260,.2,.7));
+  scG.gain.setTargetAtTime(scr*.075,t,.04);
+  scF.frequency.setTargetAtTime(1700+scr*1500+psp*1.5,t,.1);
+  wG.gain.setTargetAtTime(Math.pow(clamp(psp/520,0,1),2)*.07,t,.12);
+  nG.gain.setTargetAtTime(S.nosOn?.07:0,t,.06);
+}
+function engineStart(){
+  if(!actx||!soundOn)return;
+  var t=actx.currentTime,o=actx.createOscillator(),gg=actx.createGain(),lp=actx.createBiquadFilter();
+  o.type='sawtooth';lp.type='lowpass';lp.frequency.value=430;
+  o.frequency.setValueAtTime(26,t);o.frequency.exponentialRampToValueAtTime(34,t+.5);o.frequency.exponentialRampToValueAtTime(100,t+.78);o.frequency.exponentialRampToValueAtTime(55,t+1.3);
+  gg.gain.setValueAtTime(0,t);
+  for(var i=0;i<5;i++){gg.gain.linearRampToValueAtTime(.07,t+i*.1+.04);gg.gain.linearRampToValueAtTime(.015,t+i*.1+.09)}
+  gg.gain.linearRampToValueAtTime(.09,t+.85);gg.gain.linearRampToValueAtTime(0,t+1.5);
+  o.connect(lp);lp.connect(gg);gg.connect(mg);o.start(t);o.stop(t+1.6);
+}
+function engineStop(){
+  if(!actx||!soundOn)return;
+  var t=actx.currentTime,o=actx.createOscillator(),gg=actx.createGain(),lp=actx.createBiquadFilter();
+  o.type='sawtooth';lp.type='lowpass';lp.frequency.value=380;
+  o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(18,t+1);
+  gg.gain.setValueAtTime(.08,t);
+  for(var i=0;i<4;i++){gg.gain.linearRampToValueAtTime(.015,t+.2+i*.17);gg.gain.linearRampToValueAtTime(.05,t+.25+i*.17)}
+  gg.gain.linearRampToValueAtTime(0,t+1.1);
+  o.connect(lp);lp.connect(gg);gg.connect(mg);o.start(t);o.stop(t+1.2);
+}
+function thump(amt){
+  if(!actx||!soundOn||S.time-lastThump<.12)return;lastThump=S.time;
+  var t=actx.currentTime,n=actx.createBufferSource(),f=actx.createBiquadFilter(),gg=actx.createGain();
+  n.buffer=noiseBuf;f.type='lowpass';f.frequency.value=260+Math.min(amt,12)*40;
+  gg.gain.setValueAtTime(Math.min(.35,.1+amt*.02),t);gg.gain.exponentialRampToValueAtTime(.001,t+.28);
+  n.connect(f);f.connect(gg);gg.connect(mg);n.start(t);n.stop(t+.3);
 }
 $('snd').addEventListener('click',function(){setSound(!soundOn)});
 
@@ -1108,11 +1171,11 @@ function newGame(){
 function respawn(){
   var keep=player.spec;
   player=mkVeh(keep,3*P-260,3*P+LANE,0);
-  S.heat=0;S.unseen=0;S.bust=0;cops=[];S.overT=0;S.mode='play';S.declined=null;S.fuel=Math.max(S.fuel,.4);
+  S.heat=0;S.unseen=0;S.bust=0;cops=[];S.overT=0;S.mode='play';S.declined=null;S.fuel=Math.max(S.fuel,.4);engineStart();
   cam.x=player.x;cam.y=player.y;cam.rot=S.chase?-Math.PI/2-player.a:0;unbig();
 }
 function endRun(kind){
-  S.mode='over';S.overT=3;
+  S.mode='over';S.overT=3;engineStop();
   var fine=Math.min(S.cash,kind==='busted'?200:150);S.cash-=fine;save();
   var had=S.mission;S.mission=null;
   big(kind==='busted'?'BUSTED':'WRECKED',(fine?'Fine paid: $'+fine+'. ':'')+(had?'Job failed. ':'')+'Back to the start.');
@@ -1122,7 +1185,7 @@ $('start').addEventListener('click',function(){
   $('menu').classList.add('hidden');
   $('hud').classList.remove('hidden');$('touch').classList.remove('hidden');
   newGame();S.mode='play';
-  setSound(true);
+  setSound(true);engineStart();
   toast('Orange rings are jobs. Drive into one to meet the contact.','');
 });
 
@@ -1204,10 +1267,7 @@ function update(dt){
   var trot=S.chase?(-Math.PI/2-player.a):0;
   cam.rot+=angDiff(cam.rot,trot)*Math.min(1,dt*(S.chase?4.5:3));
   S.anchor+=((S.chase?.72:.5)-S.anchor)*Math.min(1,dt*3);
-  if(actx&&soundOn&&og){
-    var sf=Math.min(1,psp/450);
-    osc.frequency.value=48+sf*150;og.gain.value=.018+.022*(inp.thr?1:.3);
-  }
+  audioUpdate(inp,psp);
   updHud();
 }
 
@@ -1437,7 +1497,7 @@ newGame();
 var lastT=performance.now();
 function frame(now){
   var dt=Math.min(.05,(now-lastT)/1000);lastT=now;
-  update(dt);render();
+  update(dt);if(S.mode!=='play')audioSilence();render();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
