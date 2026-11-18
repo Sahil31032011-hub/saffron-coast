@@ -41,6 +41,11 @@ button{font-family:inherit}
 .bar i{display:block;height:100%;width:100%;background:var(--teal);transition:width .15s}
 .bar.bust i{background:var(--blue)}
 .bar.nos i{background:linear-gradient(90deg,#ff9d2e,#ffd36b)}
+#fuelwrap{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text);text-shadow:0 1px 0 rgba(0,0,0,.6)}
+.bar.fuel i{background:#ffc83d;width:100%}
+.bar.fuel.low i{background:var(--red)}
+#fuelwrap.low{animation:fl2 .6s steps(2) infinite}
+@keyframes fl2{50%{opacity:.45}}
 #noswrap{display:none}
 #cash{transition:color .15s,transform .15s;transform-origin:left center}
 #cash.gain{color:#7be07b;transform:scale(1.12)}
@@ -190,6 +195,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div class="bar" title="Car health"><i id="hp"></i></div>
       <div id="bustwrap" class="bar bust" title="Busted meter"><i id="bust" style="width:0%"></i></div>
       <div id="noswrap" class="bar nos" title="Nitro"><i id="nosbar"></i></div>
+      <div id="fuelwrap"><span id="fuelt">FUEL</span><div class="bar fuel" id="fuelbarwrap" title="Petrol"><i id="fuelbar"></i></div></div>
     </div>
     <div id="obj" class="hidden"><b id="objT"></b><span id="objS"></span></div>
     <div id="mmwrap"><canvas id="mm" width="264" height="264"></canvas></div>
@@ -269,6 +275,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
         <li><b>Space</b> handbrake drift</li>
         <li><b>P</b> pause &nbsp; <b>M</b> sound &nbsp; <b>C</b> camera</li>
         <li><b>Shift</b> nitro &nbsp; <b>G</b> garage &nbsp; <b>H</b> headlights</li>
+        <li style="grid-column:1/-1">Your car burns petrol. Stop slowly in a green ring at a petrol pump to refuel. It costs about $1 per 1%.</li>
         <li style="grid-column:1/-1">Drive into a glowing orange ring to meet a contact and start a job. Crashing into traffic gets the police on you. Earn cash from jobs, $ pickups on the road and drifting, then spend it in the garage.</li>
       </ul>
     </div>
@@ -408,7 +415,7 @@ var player=null,cops=[],traffic=[],parts=[],skids=[],cashes=[];
 var cam={x:0,y:0,rot:-Math.PI/2};
 var keys={},tk={};
 
-var G={color:null,trail:'smoke',paints:{stock:1},trails:{smoke:1},custom:false,lv:{engine:0,tires:0,armor:0,nitro:0}};
+var G={color:null,trail:'smoke',paints:{stock:1},trails:{smoke:1},custom:false,lv:{engine:0,tires:0,armor:0,nitro:0,tank:0}};
 function load(){
   S.cash=300;
   try{
@@ -419,21 +426,21 @@ function load(){
       if(g.color===null||typeof g.color==='string')G.color=g.color;
       if(typeof g.trail==='string')G.trail=g.trail;
       if(g.paints)G.paints=g.paints;if(g.trails)G.trails=g.trails;G.custom=!!g.custom;
-      if(g.lv)['engine','tires','armor','nitro'].forEach(function(k){if(typeof g.lv[k]==='number')G.lv[k]=Math.max(0,Math.min(5,g.lv[k]))});
+      if(g.lv)['engine','tires','armor','nitro','tank'].forEach(function(k){if(typeof g.lv[k]==='number')G.lv[k]=Math.max(0,Math.min(5,g.lv[k]))});
     }
   }catch(e){}
   G.paints.stock=1;G.trails.smoke=1;
 }
 function save(){try{localStorage.setItem('saffron-coast-v1',JSON.stringify({cash:S.cash,done:S.done,G:G}))}catch(e){}}
 load();
-S.lights=false;S.nos=1;S.nosCd=0;S.nosOn=false;S.drCombo=0;S.drShow=0;S.cashFrac=0;S.cashT=0;
+S.fuel=1;S.fuelWarn=0;S.fuelPay=0;S.refuelling=false;S.pumpMsg=0;S.lights=false;S.nos=1;S.nosCd=0;S.nosOn=false;S.drCombo=0;S.drShow=0;S.cashFrac=0;S.cashT=0;
 
 function mkVeh(spec,x,y,a){return{spec:spec,x:x,y:y,a:a,vx:0,vy:0,hp:spec.hp,stuck:0,rev:0,smoke:0}}
 
 function drive(v,inp,dt){
   var s=v.spec,fx=Math.cos(v.a),fy=Math.sin(v.a),sx=-fy,sy=fx;
   var vf=v.vx*fx+v.vy*fy,vl=v.vx*sx+v.vy*sy;
-  if(inp.thr>0){var mx=s.max*(inp.nos?1.4:1),ac=s.acc*(inp.nos?2.4:1);vf+=ac*inp.thr*Math.max(0,1-vf/mx)*dt}
+  if(inp.thr>0){var mx=s.max*(inp.nos?1.4:1),ac=s.acc*(inp.nos?2.4:1);if(inp.empty){mx=s.max*.2;ac=s.acc*.3}vf+=ac*inp.thr*Math.max(0,1-vf/mx)*dt}
   if(inp.brk>0){if(vf>15)vf-=900*dt*inp.brk;else vf-=s.acc*.5*inp.brk*Math.max(0,1+vf/130)*dt}
   if(vf<-110)vf=-110;
   vf*=Math.exp(-.45*dt);
@@ -487,6 +494,35 @@ function collideSolids(v){
   if(v.y>hi){v.y=hi;if(v.vy>0)v.vy*=-.2}
 }
 
+/* ---------- petrol pumps ---------- */
+var PUMPS=[
+  {x:1.5*P,y:1*P,v:false},{x:5.5*P,y:2*P,v:false},{x:3.5*P,y:3*P,v:false},{x:1*P,y:4.5*P,v:true},
+  {x:5*P,y:5.5*P,v:true},{x:6.5*P,y:6*P,v:false},{x:4*P,y:1.5*P,v:true},{x:2.5*P,y:5*P,v:false}
+];
+function nearestPump(){
+  var best=null,bd=1e9;
+  for(var i=0;i<PUMPS.length;i++){var d=Math.hypot(PUMPS[i].x-player.x,PUMPS[i].y-player.y);if(d<bd){bd=d;best=PUMPS[i]}}
+  return{p:best,d:bd};
+}
+function updFuel(dt,psp){
+  var np=nearestPump(),inZone=np.d<64&&psp<95&&S.heat<=0;
+  S.pumpMsg-=dt;
+  if(inZone&&S.fuel<.999){
+    var free=S.cash<1&&S.fuel<.25,step=Math.min(1-S.fuel,.22*dt);
+    if(free)step=Math.min(step,.25-S.fuel);
+    if(step>0&&(free||S.cash>=1)){
+      S.fuel+=step;
+      if(!free){S.fuelPay+=step*100;var w=Math.floor(S.fuelPay);if(w>0){S.cash=Math.max(0,S.cash-w);S.fuelPay-=w}}
+      if(!S.refuelling){S.refuelling=true;toast(free?'The owner gives you a little petrol for free.':'Refuelling...','good')}
+    }else if(!free&&S.cash<1&&S.pumpMsg<=0){S.pumpMsg=4;toast('Not enough cash for petrol. Earn some from jobs, $ pickups and drifting.','bad')}
+  }else if(S.refuelling){
+    S.refuelling=false;save();
+    if(S.fuel>=.999)toast('Tank full','good');
+  }
+  if(S.fuel<=0&&S.fuelWarn<2){S.fuelWarn=2;toast('Out of fuel. Crawl to a petrol pump, shown in yellow on the map.','bad')}
+  else if(S.fuel<.2&&S.fuel>0&&S.fuelWarn<1){S.fuelWarn=1;toast('Low fuel. Find a petrol pump.','bad')}
+  if(S.fuel>.35)S.fuelWarn=0;
+}
 /* ---------- cash pickups ---------- */
 function spawnCash(minD){
   for(var t=0;t<20;t++){
@@ -725,6 +761,8 @@ function updHud(){
   $('stars').classList.toggle('flash',stars>0&&cops.some(function(c){return Math.hypot(c.x-player.x,c.y-player.y)<420}));
   $('hp').style.width=Math.max(0,player.hp/player.spec.hp*100)+'%';
   $('hp').style.background=player.hp/player.spec.hp<.3?'var(--red)':'var(--teal)';
+  var fp=Math.round(S.fuel*100),fl=S.fuel<.2;
+  $('fuelbar').style.width=fp+'%';$('fuelbarwrap').classList.toggle('low',fl);$('fuelwrap').classList.toggle('low',fl);setT('fuelt','FUEL '+fp+'%');
   $('noswrap').style.display=G.lv.nitro>0?'block':'none';$('nosbar').style.width=(S.nos*100)+'%';
   $('cash').classList.toggle('gain',S.cashT>0);
   var de=$('dr'),dshow=S.drShow>0&&S.drCombo>=1;de.style.opacity=dshow?1:0;if(dshow)setT('dr','DRIFT +$'+Math.floor(S.drCombo));
@@ -874,7 +912,8 @@ var UPS=[
   {id:'engine',name:'Engine',desc:'+7% top speed and +9% acceleration per level.',costs:[400,700,1100,1600,2200]},
   {id:'tires',name:'Tyres',desc:'More grip and sharper steering per level.',costs:[300,550,900,1300,1800]},
   {id:'armor',name:'Body armor',desc:'+20% car health per level.',costs:[350,650,1000,1500,2100]},
-  {id:'nitro',name:'Nitro booster',desc:'Hold Shift or the NOS button for a big speed boost. Each level lasts longer and refills faster.',costs:[300,600,1000,1500,2100]}
+  {id:'nitro',name:'Nitro booster',desc:'Hold Shift or the NOS button for a big speed boost. Each level lasts longer and refills faster.',costs:[300,600,1000,1500,2100]},
+  {id:'tank',name:'Fuel tank',desc:'Burns petrol 10% slower per level, so you stop for fuel less often.',costs:[250,450,700,1000,1400]}
 ];
 var garTab='paint';
 function applyGarage(heal){
@@ -1014,7 +1053,7 @@ function newGame(){
   var spec=Object.assign({},CARS[S.carKey]);
   spec.base={max:spec.max,acc:spec.acc,steer:spec.steer,grip:spec.grip,hp:spec.hp,color:spec.color};
   player=mkVeh(spec,3*P-260,3*P+LANE,0);
-  applyGarage(true);S.nos=1;S.nosCd=0;S.drCombo=0;S.drShow=0;
+  applyGarage(true);S.fuel=1;S.fuelWarn=0;S.refuelling=false;S.nos=1;S.nosCd=0;S.drCombo=0;S.drShow=0;
   S.heat=0;S.unseen=0;S.bust=0;S.mission=null;S.declined=null;S.overT=0;S.shake=0;
   cam.x=player.x;cam.y=player.y;cam.rot=S.chase?-Math.PI/2-player.a:0;
   for(var i=0;i<40;i++){var c=spawnTraffic(380,W*2);if(c)traffic.push(c)}
@@ -1023,7 +1062,7 @@ function newGame(){
 function respawn(){
   var keep=player.spec;
   player=mkVeh(keep,3*P-260,3*P+LANE,0);
-  S.heat=0;S.unseen=0;S.bust=0;cops=[];S.overT=0;S.mode='play';S.declined=null;
+  S.heat=0;S.unseen=0;S.bust=0;cops=[];S.overT=0;S.mode='play';S.declined=null;S.fuel=Math.max(S.fuel,.4);
   cam.x=player.x;cam.y=player.y;cam.rot=S.chase?-Math.PI/2-player.a:0;unbig();
 }
 function endRun(kind){
@@ -1047,7 +1086,7 @@ function update(dt){
   if(S.mode==='over'){S.overT-=dt;if(S.overT<=0)respawn();return}
   if(S.mode!=='play')return;
   var inp={thr:(keys.thr||tk.thr)?1:0,brk:(keys.brk||tk.brk)?1:0,steer:clamp(((keys.right||tk.right)?1:0)-((keys.left||tk.left)?1:0)+(tk.sa||0),-1,1),hb:!!(keys.hb||tk.hb)};
-  var wantNos=!!(keys.nos||tk.nos)&&G.lv.nitro>0&&S.nos>.02;
+  var wantNos=!!(keys.nos||tk.nos)&&G.lv.nitro>0&&S.nos>.02&&S.fuel>0;
   inp.nos=wantNos;if(wantNos)inp.thr=1;
   if(wantNos){
     S.nos=Math.max(0,S.nos-dt/(2.5+G.lv.nitro));S.nosCd=1.2;S.shake=Math.max(S.shake,1.8);
@@ -1055,6 +1094,8 @@ function update(dt){
     for(var fl=0;fl<2;fl++){var fp=addPart(rx2+rnd(-4,4),ry2+rnd(-4,4),-ffx*rnd(120,220)+rnd(-30,30),-ffy*rnd(120,220)+rnd(-30,30),rnd(.18,.34),fl?'#4d8dff':'#ff9d2e',rnd(4,7));if(fp)fp.flame=true}
   }else{S.nosCd-=dt;if(S.nosCd<=0)S.nos=Math.min(1,S.nos+dt/(16-2*G.lv.nitro))}
   S.nosOn=wantNos;
+  S.fuel=Math.max(0,S.fuel-(.0007+(inp.thr?.0028:0)+(wantNos?.004:0))*(1-.1*G.lv.tank)*dt);
+  inp.empty=S.fuel<=0;
   S.cashT=Math.max(0,S.cashT-dt);
   drive(player,inp,dt);collideSolids(player);
   var psp=Math.hypot(player.vx,player.vy);
@@ -1105,6 +1146,7 @@ function update(dt){
   if(S.bust>2.2){endRun('busted');return}
   if(player.hp<=0){endRun('wrecked');return}
   updCash(dt);
+  updFuel(dt,psp);
   updMission(dt);
   if(S.mode!=='play')return;
   for(var p=parts.length-1;p>=0;p--){var pt=parts[p];pt.life-=dt;pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;if(pt.life<=0)parts.splice(p,1)}
@@ -1219,6 +1261,19 @@ function render(){
     g.fillStyle=peds[pi].shirt;g.beginPath();g.arc(pp[0],pp[1],4,0,Math.PI*2);g.fill();
     g.fillStyle=peds[pi].col;g.beginPath();g.arc(pp[0],pp[1],2.2,0,Math.PI*2);g.fill();
   }
+  /* petrol stations */
+  for(var pui=0;pui<PUMPS.length;pui++){
+    var pu=PUMPS[pui];if(pu.x<x0-120||pu.x>x1+120||pu.y<y0-120||pu.y>y1+120)continue;
+    var inr=Math.hypot(pu.x-player.x,pu.y-player.y)<64,pl=.5+.5*Math.sin(S.time*(inr?8:3));
+    var cw=pu.v?24:96,ch3=pu.v?96:24,cx2=pu.x+(pu.v?76:0),cy2=pu.y+(pu.v?0:76);
+    g.fillStyle='rgba(0,0,0,.3)';g.fillRect(cx2-cw/2+5,cy2-ch3/2+6,cw,ch3);
+    g.fillStyle='#e9ecf3';g.fillRect(cx2-cw/2,cy2-ch3/2,cw,ch3);
+    g.fillStyle='#ff9d2e';if(pu.v){g.fillRect(cx2-cw/2,cy2-ch3/2,cw,6);g.fillRect(cx2-cw/2,cy2+ch3/2-6,cw,6)}else{g.fillRect(cx2-cw/2,cy2-ch3/2,6,ch3);g.fillRect(cx2+cw/2-6,cy2-ch3/2,6,ch3)}
+    g.fillStyle='#d8283a';g.beginPath();g.arc(cx2+(pu.v?0:-20),cy2+(pu.v?-20:0),4,0,Math.PI*2);g.arc(cx2+(pu.v?0:20),cy2+(pu.v?20:0),4,0,Math.PI*2);g.fill();
+    g.fillStyle='rgba(123,224,123,'+(.14+.14*pl)+')';g.beginPath();g.arc(pu.x,pu.y,62,0,Math.PI*2);g.fill();
+    g.strokeStyle=inr?'#ffc83d':'#7be07b';g.lineWidth=4;g.beginPath();g.arc(pu.x,pu.y,60,0,Math.PI*2);g.stroke();
+    g.save();g.translate(pu.x,pu.y);g.rotate(-cam.rot);g.fillStyle='#eafff0';g.font='700 26px "Bebas Neue",Impact,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('PETROL',0,2);g.restore();
+  }
   /* cash pickups */
   for(var cpi=0;cpi<cashes.length;cpi++){
     var cs=cashes[cpi];if(cs.x<x0||cs.x>x1||cs.y<y0||cs.y>y1)continue;
@@ -1253,6 +1308,13 @@ function render(){
     if(dist>220){
       var an=Math.atan2(dy,dx);g.save();g.translate(player.x+Math.cos(an)*78,player.y+Math.sin(an)*78);g.rotate(an);
       g.fillStyle='rgba(39,211,181,.95)';g.beginPath();g.moveTo(14,0);g.lineTo(-8,-10);g.lineTo(-3,0);g.lineTo(-8,10);g.closePath();g.fill();g.restore();
+    }
+  }
+  if(S.fuel<.25){
+    var fn=nearestPump();
+    if(fn.d>200){
+      var fa=Math.atan2(fn.p.y-player.y,fn.p.x-player.x);g.save();g.translate(player.x+Math.cos(fa)*104,player.y+Math.sin(fa)*104);g.rotate(fa);
+      g.fillStyle='rgba(255,200,61,.95)';g.beginPath();g.moveTo(14,0);g.lineTo(-8,-10);g.lineTo(-3,0);g.lineTo(-8,10);g.closePath();g.fill();g.restore();
     }
   }
   /* buildings with parallax */
@@ -1317,6 +1379,7 @@ function drawMini(){
   }
   if(S.mission){var st=S.mission.def.stages[S.mission.i];blip(st.p.x,st.p.y,'#27d3b5',9,true)}
   else for(var i=0;i<MIS.length;i++)blip(MIS[i].start.x,MIS[i].start.y,CHARS[MIS[i].who].col,8,true);
+  for(var pm=0;pm<PUMPS.length;pm++)blip(PUMPS[pm].x,PUMPS[pm].y,'#ffc83d',6,false);
   for(var ch2=0;ch2<cashes.length;ch2++){var ddx=(cashes[ch2].x-px)*k,ddy=(cashes[ch2].y-py)*k;if(Math.hypot(ddx,ddy)<half-12){m.fillStyle='#7be07b';m.beginPath();m.arc(ddx,ddy,3.5,0,Math.PI*2);m.fill()}}
   for(var c=0;c<cops.length;c++)blip(cops[c].x,cops[c].y,Math.floor(S.time*4)%2?'#ff4d5e':'#4d8dff',6,false);
   m.rotate(player.a);m.fillStyle='#ffffff';m.beginPath();m.moveTo(11,0);m.lineTo(-8,-8);m.lineTo(-4,0);m.lineTo(-8,8);m.closePath();m.fill();
