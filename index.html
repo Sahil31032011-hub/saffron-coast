@@ -76,6 +76,30 @@ button{font-family:inherit}
 #toast.good{border-left-color:var(--teal)}
 #big{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;pointer-events:none;opacity:0;transition:opacity .3s;background:rgba(5,8,16,.55)}
 #mmwrap{pointer-events:auto;cursor:pointer}
+.mrow{display:flex;gap:8px;margin-top:10px}
+.mrow button{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+.mrow button:hover{border-color:var(--saffron)}
+#howto{z-index:19}
+#howto .card{max-width:620px}
+#howto .lk{font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--dim)}
+#howto h2{margin:4px 0 10px;font-family:var(--font-d);font-weight:400;font-size:clamp(34px,8vw,48px);line-height:.95;letter-spacing:1.5px;color:var(--saffron)}
+.hsec{margin:12px 0}
+.hsec h3{margin:0 0 6px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal)}
+.hsec p,.hsec li{margin:0 0 4px;line-height:1.5;font-size:13px}
+.hsec ul{margin:0;padding-left:18px}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:13px}
+.hgrid div{min-width:0}
+.kc{display:inline-block;padding:1px 7px;border:1px solid var(--line);border-bottom-width:3px;border-radius:6px;background:var(--panel2);font-weight:700;font-size:12px}
+.rules li{color:var(--text)}
+#htutl{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:10px}
+#stage.ctlpre #menu,#stage.ctlpre #welcome,#stage.ctlpre #howto{display:none}
+body.tedit .tk,body.tedit #wheel{outline:2px dashed var(--saffron);outline-offset:3px;cursor:grab}
+#coach{position:absolute;left:50%;top:64px;transform:translateX(-50%);max-width:min(88%,460px);background:rgba(13,17,28,.92);border:1px solid var(--saffron);border-radius:10px;padding:8px 12px;text-align:center}
+#coach b{display:block;font-family:var(--font-d);font-weight:400;font-size:18px;letter-spacing:1px;color:var(--saffron)}
+#coach span{display:block;font-size:13px;line-height:1.4}
+#coach button{pointer-events:auto;margin-top:6px;background:none;border:1px solid var(--line);color:var(--dim);border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer}
+body.touch #coach{top:auto;bottom:calc(var(--kb,14px) + 150px)}
+@media (max-width:480px){body:not(.touch) #coach{top:110px}}
 #mmhint{position:absolute;right:12px;top:128px;width:132px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.8);pointer-events:none}
 #nav{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1px;color:#ff9ccb;text-shadow:0 1px 0 rgba(0,0,0,.7)}
 #nav button{pointer-events:auto;background:rgba(13,17,28,.7);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:10px;padding:2px 6px;cursor:pointer}
@@ -219,6 +243,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div class="bar" title="Car health"><i id="hp"></i></div>
       <div id="bustwrap" class="bar bust" title="Busted meter"><i id="bust" style="width:0%"></i></div>
       <div id="noswrap" class="bar nos" title="Nitro"><i id="nosbar"></i></div>
+      <div id="coach" class="hidden"><b id="coachT"></b><span id="coachM"></span><button type="button" id="coachSkip">Skip tutorial</button></div>
       <div id="nav" class="hidden"><span id="navt"></span><button type="button" id="navx">Clear</button></div>
       <div id="fuelwrap"><span id="fuelt">FUEL</span><div class="bar fuel" id="fuelbarwrap" title="Petrol"><i id="fuelbar"></i></div></div>
     </div>
@@ -251,6 +276,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
     <label for="cs-kb">Height<input type="range" id="cs-kb" min="6" max="170" step="2"><output id="o-kb"></output></label>
     <label for="cs-kx">Edge gap<input type="range" id="cs-kx" min="4" max="140" step="2"><output id="o-kx"></output></label>
     <label class="sw" for="cs-wheel"><input type="checkbox" id="cs-wheel"> Steering wheel (instead of left and right buttons)</label>
+    <label class="sw" for="cs-edit"><input type="checkbox" id="cs-edit"> Edit layout: drag each button to where you want it</label>
     <label class="sw" for="cs-swap"><input type="checkbox" id="cs-swap"> Swap sides (steering right, pedals left)</label>
     <div class="btns"><button type="button" id="cs-reset">Reset</button><button type="button" class="pri" id="cs-done">Done</button></div>
   </div>
@@ -299,6 +325,35 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
     </div>
   </div>
 
+  <div id="howto" class="overlay hidden">
+    <div class="card">
+      <div class="lk">Before you drive</div>
+      <h2>How to play</h2>
+      <div class="hsec"><h3>Your goal</h3><p>Drive around Saffron Coast. Take jobs from the orange rings, earn money, then spend it in the Garage on cars, paint and upgrades. Keep an eye on your fuel.</p></div>
+      <div class="hsec"><h3>Keyboard</h3>
+        <div class="hgrid">
+          <div><span class="kc">W</span> / <span class="kc">↑</span> gas</div><div><span class="kc">S</span> / <span class="kc">↓</span> brake and reverse</div>
+          <div><span class="kc">A</span> <span class="kc">D</span> / <span class="kc">←</span> <span class="kc">→</span> steer</div><div><span class="kc">Space</span> handbrake drift</div>
+          <div><span class="kc">Shift</span> nitro</div><div><span class="kc">B</span> horn</div>
+          <div><span class="kc">H</span> headlights</div><div><span class="kc">N</span> full map</div>
+          <div><span class="kc">G</span> garage</div><div><span class="kc">C</span> camera view</div>
+        </div>
+      </div>
+      <div class="hsec"><h3>Phone or tablet</h3><p>Use the on-screen wheel to steer and the GAS and BRAKE buttons. DRIFT, NOS, LIGHT and HORN are the small buttons. Tap <b>Menu</b> for the Garage, Map and other options. You can move and resize every button.</p></div>
+      <div class="hsec rules"><h3>Rules you must follow</h3>
+        <ul>
+          <li>Do not run over pedestrians. The police will jail you.</li>
+          <li>Crashing into traffic gives you wanted stars. Lose the police or you get busted.</li>
+          <li>Stay out of the water. If you drive in, reverse out fast.</li>
+          <li>Slow down at the railway crossings when the lights flash.</li>
+          <li>Refuel at a green PETROL ring before the tank runs empty.</li>
+        </ul>
+      </div>
+      <label id="htutl" for="htutc"><input type="checkbox" id="htutc" checked> Show the step-by-step driving tutorial when I start</label>
+      <div class="btns"><button type="button" id="hcustom">Adjust control buttons</button><button type="button" class="pri" id="hgot">I understand</button></div>
+    </div>
+  </div>
+
   <div id="menu" class="overlay">
     <div class="card">
       <h1>Saffron<br>Coast</h1>
@@ -307,6 +362,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div class="cars" id="cars"></div>
       <p id="mmsg"></p>
       <button class="go" id="start" type="button">START DRIVING</button>
+      <div class="mrow"><button id="mhow" type="button">How to play</button><button id="mctl" type="button">Adjust controls</button></div>
       <ul class="help">
         <li><b>W / ↑</b> gas &nbsp; <b>S / ↓</b> brake, reverse</li>
         <li><b>A D / ← →</b> steer</li>
@@ -1111,7 +1167,7 @@ $('snd').addEventListener('click',function(){setSound(!soundOn)});
 var map={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'thr',KeyW:'thr',ArrowDown:'brk',KeyS:'brk',Space:'hb',ShiftLeft:'nos',ShiftRight:'nos',KeyB:'horn'};
 window.addEventListener('keydown',function(e){
   if(map[e.code]){keys[map[e.code]]=true;if(S.mode==='play')e.preventDefault()}
-  if(e.code==='Escape'&&S.mode==='settings'){closeCtl();return}
+  if(e.code==='Escape'&&(S.mode==='settings'||S.ctlPre)){closeCtl();return}
   if(e.code==='Escape'&&S.mode==='garage'){closeGar();return}
   if(e.code==='Escape'&&S.mode==='map'){closeMap();return}
   if(e.code==='KeyN'){if(S.mode==='map')closeMap();else openMap()}
@@ -1126,7 +1182,7 @@ window.addEventListener('keyup',function(e){if(map[e.code])keys[map[e.code]]=fal
 window.addEventListener('blur',function(){keys={};tk={sa:0}});
 Array.prototype.forEach.call(document.querySelectorAll('.tk'),function(el){
   var k=el.getAttribute('data-k');
-  el.addEventListener('pointerdown',function(e){e.preventDefault();tk[k]=true;el.classList.add('on')});
+  el.addEventListener('pointerdown',function(e){if(CS.edit)return;e.preventDefault();tk[k]=true;el.classList.add('on')});
   ['pointerup','pointercancel','pointerleave'].forEach(function(ev){el.addEventListener(ev,function(){tk[k]=false;el.classList.remove('on')})});
 });
 function togglePause(){
@@ -1138,8 +1194,11 @@ function toggleView(){S.chase=!S.chase;$('view').textContent='View: '+(S.chase?'
 $('view').addEventListener('click',toggleView);
 
 /* control layout settings */
-var CS={ss:1,sp:1,ko:1,kb:14,kx:12,swap:false,wheel:true},CSD={ss:1,sp:1,ko:1,kb:14,kx:12,swap:false,wheel:true};
-try{var cso=JSON.parse(localStorage.getItem('saffron-coast-controls')||'null');if(cso)Object.keys(CS).forEach(function(k){if(typeof cso[k]===typeof CS[k])CS[k]=cso[k]})}catch(e){}
+var CS={ss:1,sp:1,ko:1,kb:14,kx:12,swap:false,wheel:true,off:{},edit:false},CSD={ss:1,sp:1,ko:1,kb:14,kx:12,swap:false,wheel:true};
+var CTRLS=[['#wheel','wheel'],['#tl','left'],['#tr','right'],['.tk[data-k="thr"]','gas'],['.tk[data-k="brk"]','brake'],['.tk[data-k="hb"]','drift'],['.tk[data-k="nos"]','nos'],['#tlight','light'],['.tk[data-k="horn"]','horn']].map(function(q){return{el:document.querySelector(q[0]),id:q[1]}}).filter(function(c){return c.el});
+function applyOff(){CTRLS.forEach(function(c){var o=CS.off&&CS.off[c.id];c.el.style.translate=o?o.x+'px '+o.y+'px':''})}
+try{var cso=JSON.parse(localStorage.getItem('saffron-coast-controls')||'null');if(cso)Object.keys(CS).forEach(function(k){if(k!=='edit'&&cso[k]&&typeof cso[k]===typeof CS[k]||(typeof cso[k]!=='object'&&k!=='edit'&&typeof cso[k]===typeof CS[k]))CS[k]=cso[k]})}catch(e){}
+CS.edit=false;if(!CS.off||typeof CS.off!=='object')CS.off={};
 function applyCS(){
   var st=$('stage').style;
   st.setProperty('--ss',CS.ss);st.setProperty('--sp',CS.sp);st.setProperty('--ko',CS.ko);st.setProperty('--kb',CS.kb+'px');st.setProperty('--kx',CS.kx+'px');
@@ -1149,20 +1208,45 @@ function applyCS(){
     $('o-'+k).textContent=(k==='kb'||k==='kx')?CS[k]+'px':Math.round(CS[k]*100)+'%';
   });
   $('cs-swap').checked=CS.swap;$('cs-wheel').checked=CS.wheel;
+  $('cs-edit').checked=CS.edit;document.body.classList.toggle('tedit',CS.edit);applyOff();
 }
 function saveCS(){try{localStorage.setItem('saffron-coast-controls',JSON.stringify(CS))}catch(e){}}
 ['ss','sp','ko','kb','kx'].forEach(function(k){$('cs-'+k).addEventListener('input',function(){CS[k]=parseFloat(this.value);applyCS();saveCS()})});
 $('cs-wheel').addEventListener('change',function(){CS.wheel=this.checked;tk.sa=0;applyCS();saveCS()});
 $('cs-swap').addEventListener('change',function(){CS.swap=this.checked;applyCS();saveCS()});
-$('cs-reset').addEventListener('click',function(){Object.keys(CSD).forEach(function(k){CS[k]=CSD[k]});applyCS();saveCS()});
+$('cs-reset').addEventListener('click',function(){Object.keys(CSD).forEach(function(k){CS[k]=CSD[k]});CS.off={};applyCS();saveCS()});
+$('cs-edit').addEventListener('change',function(){CS.edit=this.checked;tk.sa=0;applyCS()});
+(function(){
+  var drag=null;
+  CTRLS.forEach(function(c){
+    var el=c.el;
+    el.addEventListener('pointerdown',function(e){
+      if(!CS.edit)return;e.preventDefault();
+      var o=CS.off[c.id]||{x:0,y:0};drag={c:c,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y,pid:e.pointerId};
+      try{el.setPointerCapture(e.pointerId)}catch(x){}
+    });
+    el.addEventListener('pointermove',function(e){
+      if(!drag||drag.c!==c||e.pointerId!==drag.pid)return;
+      CS.off[c.id]={x:clamp(drag.ox+e.clientX-drag.sx,-vw,vw),y:clamp(drag.oy+e.clientY-drag.sy,-vh,vh)};applyOff();
+    });
+    function end(){if(drag&&drag.c===c){drag=null;saveCS()}}
+    el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  });
+})();
 var ctlPrev='play';
 function openCtl(){
   if(S.mode!=='play'&&S.mode!=='paused')return;
   ctlPrev=S.mode;S.mode='settings';unbig();
   $('ctl').classList.remove('hidden');document.body.classList.add('tshow');
 }
+function openCtlPre(){
+  S.ctlPre=true;$('stage').classList.add('ctlpre');$('touch').classList.remove('hidden');
+  $('ctl').classList.remove('hidden');document.body.classList.add('tshow');
+}
 function closeCtl(){
+  CS.edit=false;applyCS();
   $('ctl').classList.add('hidden');document.body.classList.remove('tshow');
+  if(S.ctlPre){S.ctlPre=false;$('stage').classList.remove('ctlpre');$('touch').classList.add('hidden');return}
   S.mode='play';
 }
 $('ctlbtn').addEventListener('click',function(){if(S.mode==='settings')closeCtl();else openCtl()});
@@ -1177,7 +1261,7 @@ function toggleLights(){
   toast(S.lights?'Headlights on':'Headlights off','');
 }
 $('lightbtn').addEventListener('click',toggleLights);
-$('tlight').addEventListener('pointerdown',function(e){e.preventDefault();toggleLights()});
+$('tlight').addEventListener('pointerdown',function(e){if(CS.edit)return;e.preventDefault();toggleLights()});
 
 /* steering wheel */
 (function(){
@@ -1188,7 +1272,7 @@ $('tlight').addEventListener('pointerdown',function(e){e.preventDefault();toggle
     var a=clamp(Math.atan2(dx,-dy),-1.3,1.3);
     tk.sa=clamp(a/.85,-1,1);w.style.transform='rotate('+a+'rad)';
   }
-  w.addEventListener('pointerdown',function(e){e.preventDefault();pid=e.pointerId;try{w.setPointerCapture(pid)}catch(x){}w.classList.add('drag');setA(e)});
+  w.addEventListener('pointerdown',function(e){if(CS.edit)return;e.preventDefault();pid=e.pointerId;try{w.setPointerCapture(pid)}catch(x){}w.classList.add('drag');setA(e)});
   w.addEventListener('pointermove',function(e){if(e.pointerId===pid)setA(e)});
   function end(e){if(e.pointerId!==pid)return;pid=null;tk.sa=0;w.classList.remove('drag');w.style.transform=''}
   w.addEventListener('pointerup',end);w.addEventListener('pointercancel',end);w.addEventListener('lostpointercapture',end);
@@ -1200,7 +1284,29 @@ Array.prototype.forEach.call(document.querySelectorAll('#tools .tb'),function(b)
 });
 
 /* ---------- full map and navigation ---------- */
-S.way=null;
+S.way=null;S.tut=-1;S.mapSeen=false;S.tutSteer=0;S.tutB=false;S.tutD=false;
+var TUT=[
+  {m:'Hold GAS to drive. Keyboard: W or the up arrow.',ok:function(c){return c.psp>70}},
+  {m:'Steer left and right. Keyboard: A and D, or use the wheel.',ok:function(c){return S.tutSteer>=1}},
+  {m:'Brake or reverse. Keyboard: S or the down arrow, or the BRAKE button.',ok:function(c){return S.tutB}},
+  {m:'Drift: hold the handbrake and steer at speed. Keyboard: Space, or the DRIFT button.',ok:function(c){return S.tutD}},
+  {m:'Switch on your headlights. Keyboard: H, or the LIGHT button.',ok:function(c){return S.lights}},
+  {m:'Open the full map. Tap the minimap or press N, tap a place, then close the map and follow the pink arrow.',ok:function(c){return S.mapSeen&&!!S.way}}
+];
+function showCoach(){
+  var c=$('coach');
+  if(S.tut<0||S.tut>=TUT.length){c.classList.add('hidden');return}
+  $('coachT').textContent='Tutorial · Step '+(S.tut+1)+' of '+TUT.length;$('coachM').textContent=TUT[S.tut].m;c.classList.remove('hidden');
+}
+function endTut(done){S.tut=-1;$('coach').classList.add('hidden');lsSet('saffron-coast-tut','done');$('htutc').checked=false;if(done)toast('Tutorial complete. Drive into an orange ring to start a job.','good')}
+function updTut(inp,psp,dt){
+  if(S.tut<0||S.tut>=TUT.length)return;
+  if(Math.abs(inp.steer)>.3&&psp>40)S.tutSteer+=dt;
+  if(inp.brk&&(player.fwd||0)>80)S.tutB=true;
+  if(inp.hb&&psp>100&&Math.abs(inp.steer)>.2)S.tutD=true;
+  if(TUT[S.tut].ok({psp:psp})){S.tut++;if(S.tut>=TUT.length)endTut(true);else showCoach()}
+}
+$('coachSkip').addEventListener('click',function(){endTut(false)});
 function routePts(){
   if(!S.way||!player)return null;
   var si=clamp(Math.round(player.x/P),0,N),sj=clamp(Math.round(player.y/P),0,N),di=clamp(Math.round(S.way.x/P),0,N),dj=clamp(Math.round(S.way.y/P),0,N);
@@ -1239,7 +1345,7 @@ function drawFull(){
 }
 function openMap(){
   if(S.mode!=='play'&&S.mode!=='paused')return;
-  S.mode='map';unbig();$('toast').className='';$('fmap').classList.remove('hidden');drawFull();
+  S.mapSeen=true;S.mode='map';unbig();$('toast').className='';$('fmap').classList.remove('hidden');drawFull();
 }
 function closeMap(){$('fmap').classList.add('hidden');S.mode='play'}
 $('mmwrap').addEventListener('click',openMap);
@@ -1410,8 +1516,20 @@ $('garbtn').addEventListener('click',function(){if(S.mode==='garage')closeGar();
 $('gdone').addEventListener('click',closeGar);
 Array.prototype.forEach.call(document.querySelectorAll('#gar .tabs button'),function(b){b.addEventListener('click',function(){garTab=b.getAttribute('data-t');gmsg('');renderGarage()})});
 
-$('wgo').addEventListener('click',function(){$('welcome').classList.add('hidden');$('start').focus()});
-window.addEventListener('keydown',function(e){if(e.code==='Enter'&&!$('welcome').classList.contains('hidden')){$('welcome').classList.add('hidden')}});
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function afterWelcome(){
+  $('welcome').classList.add('hidden');
+  if(!lsGet('saffron-coast-howto')){$('howto').classList.remove('hidden');setTimeout(function(){$('hgot').focus()},30)}
+  else $('start').focus();
+}
+$('wgo').addEventListener('click',afterWelcome);
+window.addEventListener('keydown',function(e){if(e.code==='Enter'&&!$('welcome').classList.contains('hidden'))afterWelcome()});
+$('hgot').addEventListener('click',function(){lsSet('saffron-coast-howto','1');$('howto').classList.add('hidden');$('start').focus()});
+$('hcustom').addEventListener('click',function(){openCtlPre()});
+$('mhow').addEventListener('click',function(){$('howto').classList.remove('hidden')});
+$('mctl').addEventListener('click',function(){openCtlPre()});
+if(lsGet('saffron-coast-tut')==='done')$('htutc').checked=false;
 setTimeout(function(){$('wgo').focus()},50);
 
 /* menu */
@@ -1476,6 +1594,8 @@ $('start').addEventListener('click',function(){
   $('hud').classList.remove('hidden');$('touch').classList.remove('hidden');
   newGame();S.mode='play';
   setSound(true);engineStart();
+  S.tut=-1;S.tutSteer=0;S.tutB=false;S.tutD=false;S.mapSeen=false;
+  if($('htutc').checked){S.tut=0;showCoach()}
   toast('Orange rings are jobs. Drive into one to meet the contact.','');
 });
 
@@ -1586,6 +1706,7 @@ function update(dt){
   cam.rot+=angDiff(cam.rot,trot)*Math.min(1,dt*(S.chase?4.5:3));
   S.anchor+=((S.chase?.72:.5)-S.anchor)*Math.min(1,dt*3);
   audioUpdate(inp,psp);
+  if(S.tut>=0)updTut(inp,psp,dt);
   updHud();
 }
 
