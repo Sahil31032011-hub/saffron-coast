@@ -75,6 +75,15 @@ button{font-family:inherit}
 #toast.bad{border-left-color:var(--red)}
 #toast.good{border-left-color:var(--teal)}
 #big{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;pointer-events:none;opacity:0;transition:opacity .3s;background:rgba(5,8,16,.55)}
+#mmwrap{pointer-events:auto;cursor:pointer}
+#mmhint{position:absolute;right:12px;top:128px;width:132px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.8);pointer-events:none}
+#nav{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1px;color:#ff9ccb;text-shadow:0 1px 0 rgba(0,0,0,.7)}
+#nav button{pointer-events:auto;background:rgba(13,17,28,.7);color:var(--text);border:1px solid var(--line);border-radius:6px;font-size:10px;padding:2px 6px;cursor:pointer}
+#fmap .card{max-width:660px}
+#fm{display:block;width:min(100%,calc(100vh - 250px));min-width:200px;aspect-ratio:1;margin:8px auto;border-radius:10px;cursor:crosshair;touch-action:manipulation;background:#1f5273}
+#fmleg{font-size:11px;color:var(--dim);line-height:1.5;text-align:center}
+#fmhint{font-size:12px;color:var(--saffron);text-align:right}
+@media (max-width:480px){#mmhint{top:96px;width:104px}}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .6s;z-index:6}
 #flash.on{opacity:.95;transition:none}
 #big.show{opacity:1}
@@ -210,13 +219,15 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div class="bar" title="Car health"><i id="hp"></i></div>
       <div id="bustwrap" class="bar bust" title="Busted meter"><i id="bust" style="width:0%"></i></div>
       <div id="noswrap" class="bar nos" title="Nitro"><i id="nosbar"></i></div>
+      <div id="nav" class="hidden"><span id="navt"></span><button type="button" id="navx">Clear</button></div>
       <div id="fuelwrap"><span id="fuelt">FUEL</span><div class="bar fuel" id="fuelbarwrap" title="Petrol"><i id="fuelbar"></i></div></div>
     </div>
     <div id="obj" class="hidden"><b id="objT"></b><span id="objS"></span></div>
-    <div id="mmwrap"><canvas id="mm" width="264" height="264"></canvas></div>
+    <div id="mmwrap" title="Tap to open the full map"><canvas id="mm" width="264" height="264"></canvas></div>
+    <div id="mmhint">TAP FOR MAP</div>
     <div id="dr"></div>
     <div id="speed"><b id="kmh">0</b><small>km/h</small></div>
-    <div id="tools"><button class="tb" id="tmore" type="button">Menu</button><button class="tb" id="lightbtn" type="button">Lights: off</button><button class="tb" id="garbtn" type="button">Garage</button><button class="tb" id="snd" type="button">Sound: off</button><button class="tb" id="ctlbtn" type="button">Controls</button><button class="tb" id="view" type="button">View: chase</button><button class="tb" id="pause" type="button">Pause</button></div>
+    <div id="tools"><button class="tb" id="tmore" type="button">Menu</button><button class="tb" id="mapbtn" type="button">Map</button><button class="tb" id="lightbtn" type="button">Lights: off</button><button class="tb" id="garbtn" type="button">Garage</button><button class="tb" id="snd" type="button">Sound: off</button><button class="tb" id="ctlbtn" type="button">Controls</button><button class="tb" id="view" type="button">View: chase</button><button class="tb" id="pause" type="button">Pause</button></div>
   </div>
 
   <div id="touch" class="hidden">
@@ -261,6 +272,14 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
     </div>
   </div>
 
+  <div id="fmap" class="overlay hidden">
+    <div class="card">
+      <div class="gh"><h2>World map</h2><span id="fmhint">Tap anywhere to set a destination</span></div>
+      <canvas id="fm" width="720" height="720"></canvas>
+      <div id="fmleg">Orange: jobs · Yellow ring: station, airport · Blue: police · Teal: showroom · Small yellow squares: petrol · Pink pin: your destination</div>
+      <div class="btns"><button type="button" id="fmclear">Clear destination</button><button type="button" class="pri" id="fmclose">Close map</button></div>
+    </div>
+  </div>
   <div id="flash"></div>
   <div id="toast"></div>
   <div id="big"><b id="bigT"></b><span id="bigS"></span></div>
@@ -293,7 +312,7 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
         <li><b>A D / ← →</b> steer</li>
         <li><b>Space</b> handbrake drift</li>
         <li><b>P</b> pause &nbsp; <b>M</b> sound &nbsp; <b>C</b> camera</li>
-        <li><b>Shift</b> nitro &nbsp; <b>G</b> garage &nbsp; <b>H</b> headlights &nbsp; <b>B</b> horn</li>
+        <li><b>Shift</b> nitro &nbsp; <b>G</b> garage &nbsp; <b>H</b> headlights &nbsp; <b>B</b> horn &nbsp; <b>N</b> map</li>
         <li style="grid-column:1/-1">Explore the desert, the snowy south, the railway, the airport and the shops. Use the station and the airport to travel for $60. Do not run over pedestrians. The police will jail you. Your car burns petrol. Stop slowly in a green ring at a petrol pump to refuel. It costs about $1 per 1%.</li>
         <li style="grid-column:1/-1">Drive into a glowing orange ring to meet a contact and start a job. Crashing into traffic gets the police on you. Earn cash from jobs, $ pickups on the road and drifting, then spend it in the garage.</li>
       </ul>
@@ -671,6 +690,11 @@ function updWorld(dt,psp){
     if((Math.abs(pdx)<62&&Math.abs(pdy)<24)||(Math.abs(pdx-wx)<18&&Math.abs(pdy)<68)){
       S.planeCd=1.6;hurt(player,40);player.vx=Math.cos(pl.ang)*200;player.vy*=.3;S.shake=12;thump(10);sparks(player.x,player.y,12);toast('Hit by a plane on the runway!','bad');
     }
+  }
+  if(S.way){
+    var wd=Math.hypot(S.way.x-player.x,S.way.y-player.y);
+    if(wd<70){S.way=null;$('nav').classList.add('hidden');toast('You have arrived at your destination.','good')}
+    else{$('nav').classList.remove('hidden');setT('navt','DEST '+Math.round(wd*.25)+' m')}
   }
   var bn=biomeAt(player.x,player.y);
   if(bn!==S.bio){S.bio=bn;toast(bn==='desert'?'Dune Flats. Sand slows you down.':bn==='winter'?'Frostline. The roads are icy, so brake early.':'Back in Saffron City.','')}
@@ -1089,6 +1113,8 @@ window.addEventListener('keydown',function(e){
   if(map[e.code]){keys[map[e.code]]=true;if(S.mode==='play')e.preventDefault()}
   if(e.code==='Escape'&&S.mode==='settings'){closeCtl();return}
   if(e.code==='Escape'&&S.mode==='garage'){closeGar();return}
+  if(e.code==='Escape'&&S.mode==='map'){closeMap();return}
+  if(e.code==='KeyN'){if(S.mode==='map')closeMap();else openMap()}
   if(e.code==='KeyP'||e.code==='Escape')togglePause();
   if(e.code==='KeyM')setSound(!soundOn);
   if(e.code==='KeyC')toggleView();
@@ -1171,6 +1197,64 @@ $('tlight').addEventListener('pointerdown',function(e){e.preventDefault();toggle
 /* tools menu on touch */
 Array.prototype.forEach.call(document.querySelectorAll('#tools .tb'),function(b){
   b.addEventListener('click',function(){if(b.id==='tmore')$('tools').classList.toggle('open');else $('tools').classList.remove('open')});
+});
+
+/* ---------- full map and navigation ---------- */
+S.way=null;
+function routePts(){
+  if(!S.way||!player)return null;
+  var si=clamp(Math.round(player.x/P),0,N),sj=clamp(Math.round(player.y/P),0,N),di=clamp(Math.round(S.way.x/P),0,N),dj=clamp(Math.round(S.way.y/P),0,N);
+  return[{x:player.x,y:player.y},{x:si*P,y:sj*P},{x:di*P,y:sj*P},{x:di*P,y:dj*P},{x:S.way.x,y:S.way.y}];
+}
+function setWay(x,y){
+  S.way={x:clamp(x,0,W),y:clamp(y,0,W)};
+  $('fmhint').textContent='Destination set. Close the map and follow the pink arrow.';
+}
+function clearWay(){S.way=null;$('nav').classList.add('hidden');if(S.mode==='map')drawFull();$('fmhint').textContent='Tap anywhere to set a destination'}
+function drawFull(){
+  var c=$('fm'),g=c.getContext('2d'),Z=c.width,sc=Z/(W+R),i,j;
+  function X(x){return (x+R/2)*sc}function Y(y){return (y+R/2)*sc}
+  g.clearRect(0,0,Z,Z);g.fillStyle='#1f5273';g.fillRect(0,0,Z,Z);
+  g.fillStyle='#3a4256';g.fillRect(X(-R/2),Y(-R/2),(W+R)*sc,(W+R)*sc);
+  for(i=0;i<N;i++)for(j=0;j<N;j++){
+    var b=blocks[i*N+j];
+    g.fillStyle=b.air?'#4f545e':b.bio==='desert'?(b.park?'#d9b779':'#a8864f'):b.bio==='winter'?(b.park?'#e8eef5':'#b7c6d8'):(b.park?'#3f7a4a':'#59606f');
+    g.fillRect(X(b.x),Y(b.y),b.s*sc,b.s*sc);
+  }
+  g.strokeStyle='#9aa4bd';g.lineWidth=Math.max(2.5,R*sc*.55);
+  for(i=0;i<=N;i++){g.beginPath();g.moveTo(X(i*P),Y(-R/2));g.lineTo(X(i*P),Y(W+R/2));g.stroke();g.beginPath();g.moveTo(X(-R/2),Y(i*P));g.lineTo(X(W+R/2),Y(i*P));g.stroke()}
+  g.strokeStyle='#1a1c22';g.lineWidth=2;g.setLineDash([5,4]);g.beginPath();g.moveTo(X(-R/2),Y(RAILY));g.lineTo(X(7*P+R/2),Y(RAILY));g.stroke();g.setLineDash([]);
+  g.fillStyle='#e8ecf4';g.fillRect(X(RUNX0),Y(RUNY)-3,(RUNX1-RUNX0)*sc,6);
+  g.fillStyle='rgba(255,255,255,.55)';g.font='700 15px Inter,system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  g.fillText('SAFFRON CITY',X(3.5*P),Y(.45*P));g.fillText('DUNE FLATS',X(9.5*P),Y(5.4*P));g.fillText('FROSTLINE',X(6*P),Y(9.3*P));g.fillText('AIRPORT',X(10*P),Y(1.6*P));
+  g.fillStyle='#ffd36b';for(i=0;i<PUMPS.length;i++)g.fillRect(X(PUMPS[i].x)-3,Y(PUMPS[i].y)-3,6,6);
+  var rp=routePts();
+  if(rp){g.strokeStyle='#4de8ff';g.lineWidth=3;g.setLineDash([8,6]);g.beginPath();g.moveTo(X(rp[0].x),Y(rp[0].y));for(i=1;i<rp.length;i++)g.lineTo(X(rp[i].x),Y(rp[i].y));g.stroke();g.setLineDash([])}
+  g.font='700 11px Inter,system-ui,sans-serif';
+  for(i=0;i<POIS.length;i++){var po=POIS[i];g.fillStyle=po.col;g.strokeStyle='#0d111c';g.lineWidth=2;g.beginPath();g.arc(X(po.x),Y(po.y),6,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#fff';g.strokeStyle='rgba(0,0,0,.75)';g.lineWidth=3;g.strokeText(po.label,X(po.x),Y(po.y)-13);g.fillText(po.label,X(po.x),Y(po.y)-13)}
+  if(S.mission){var st=S.mission.def.stages[S.mission.i];g.strokeStyle='#27d3b5';g.lineWidth=3;g.beginPath();g.arc(X(st.p.x),Y(st.p.y),8,0,Math.PI*2);g.stroke()}
+  else for(i=0;i<MIS.length;i++){var ms=MIS[i];g.strokeStyle=CHARS[ms.who].col;g.lineWidth=3;g.beginPath();g.arc(X(ms.start.x),Y(ms.start.y),7,0,Math.PI*2);g.stroke()}
+  if(S.way){var wx=X(S.way.x),wy=Y(S.way.y);g.fillStyle='#ff5fa8';g.strokeStyle='#fff';g.lineWidth=2.5;g.beginPath();g.arc(wx,wy,9,0,Math.PI*2);g.fill();g.stroke();g.fillStyle='#fff';g.strokeStyle='rgba(0,0,0,.75)';g.lineWidth=3;g.strokeText('DEST',wx,wy-17);g.fillText('DEST',wx,wy-17)}
+  g.save();g.translate(X(player.x),Y(player.y));g.rotate(player.a);g.fillStyle='#fff';g.strokeStyle='#0d111c';g.lineWidth=2.5;g.beginPath();g.moveTo(12,0);g.lineTo(-9,-8);g.lineTo(-4,0);g.lineTo(-9,8);g.closePath();g.fill();g.stroke();g.restore();
+}
+function openMap(){
+  if(S.mode!=='play'&&S.mode!=='paused')return;
+  S.mode='map';unbig();$('toast').className='';$('fmap').classList.remove('hidden');drawFull();
+}
+function closeMap(){$('fmap').classList.add('hidden');S.mode='play'}
+$('mmwrap').addEventListener('click',openMap);
+$('mapbtn').addEventListener('click',function(){if(S.mode==='map')closeMap();else openMap()});
+$('fmclose').addEventListener('click',closeMap);
+$('fmclear').addEventListener('click',clearWay);
+$('navx').addEventListener('click',clearWay);
+$('fm').addEventListener('click',function(e){
+  var r=this.getBoundingClientRect(),Z=this.width,sc=Z/(W+R),cx=(e.clientX-r.left)/r.width*Z,cy=(e.clientY-r.top)/r.height*Z,x=cx/sc-R/2,y=cy/sc-R/2;
+  var best=null,bd=22/sc;
+  POIS.forEach(function(q){var d=Math.hypot(q.x-x,q.y-y);if(d<bd){bd=d;best=q}});
+  PUMPS.forEach(function(q){var d=Math.hypot(q.x-x,q.y-y);if(d<bd){bd=d;best=q}});
+  MIS.forEach(function(q){var d=Math.hypot(q.start.x-x,q.start.y-y);if(d<bd){bd=d;best={x:q.start.x,y:q.start.y}}});
+  if(best){x=best.x;y=best.y}
+  setWay(x,y);drawFull();
 });
 
 /* ---------- garage ---------- */
@@ -1667,6 +1751,16 @@ function render(){
     if(po2.sub){g.font='700 12px Inter,system-ui,sans-serif';g.fillText(po2.sub,0,12)}
     g.restore();
   }
+  /* navigation route and destination */
+  if(S.way){
+    var rt=routePts();
+    g.save();g.strokeStyle='rgba(77,232,255,.85)';g.lineWidth=9;g.lineCap='round';g.lineJoin='round';g.setLineDash([26,20]);
+    g.beginPath();g.moveTo(rt[0].x,rt[0].y);for(var rpi=1;rpi<rt.length;rpi++)g.lineTo(rt[rpi].x,rt[rpi].y);g.stroke();g.restore();
+    var wpl=.5+.5*Math.sin(S.time*4);
+    g.globalAlpha=.2+.15*wpl;g.fillStyle='#ff5fa8';g.beginPath();g.arc(S.way.x,S.way.y,66,0,Math.PI*2);g.fill();g.globalAlpha=1;
+    g.strokeStyle='#ff5fa8';g.lineWidth=5;g.beginPath();g.arc(S.way.x,S.way.y,62,0,Math.PI*2);g.stroke();
+    g.save();g.translate(S.way.x,S.way.y);g.rotate(-cam.rot);g.fillStyle='#fff';g.font='700 24px "Bebas Neue",Impact,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('DESTINATION',0,2);g.restore();
+  }
   /* cash pickups */
   for(var cpi=0;cpi<cashes.length;cpi++){
     var cs=cashes[cpi];if(cs.x<x0||cs.x>x1||cs.y<y0||cs.y>y1)continue;
@@ -1707,6 +1801,13 @@ function render(){
     if(dist>220){
       var an=Math.atan2(dy,dx);g.save();g.translate(player.x+Math.cos(an)*78,player.y+Math.sin(an)*78);g.rotate(an);
       g.fillStyle='rgba(39,211,181,.95)';g.beginPath();g.moveTo(14,0);g.lineTo(-8,-10);g.lineTo(-3,0);g.lineTo(-8,10);g.closePath();g.fill();g.restore();
+    }
+  }
+  if(S.way){
+    var wdx=S.way.x-player.x,wdy=S.way.y-player.y;
+    if(Math.hypot(wdx,wdy)>260){
+      var wa2=Math.atan2(wdy,wdx);g.save();g.translate(player.x+Math.cos(wa2)*130,player.y+Math.sin(wa2)*130);g.rotate(wa2);
+      g.fillStyle='rgba(255,95,168,.95)';g.beginPath();g.moveTo(16,0);g.lineTo(-9,-11);g.lineTo(-3,0);g.lineTo(-9,11);g.closePath();g.fill();g.restore();
     }
   }
   if(S.fuel<.25){
@@ -1868,6 +1969,9 @@ function drawMini(){
   }
   if(S.mission){var st=S.mission.def.stages[S.mission.i];blip(st.p.x,st.p.y,'#27d3b5',9,true)}
   else for(var i=0;i<MIS.length;i++)blip(MIS[i].start.x,MIS[i].start.y,CHARS[MIS[i].who].col,8,true);
+  var mrp=routePts();
+  if(mrp){m.strokeStyle='rgba(77,232,255,.9)';m.lineWidth=3;m.beginPath();m.moveTo((mrp[0].x-px)*k,(mrp[0].y-py)*k);for(var mri=1;mri<mrp.length;mri++)m.lineTo((mrp[mri].x-px)*k,(mrp[mri].y-py)*k);m.stroke()}
+  if(S.way)blip(S.way.x,S.way.y,'#ff5fa8',7,false);
   for(var pq=0;pq<POIS.length;pq++)blip(POIS[pq].x,POIS[pq].y,POIS[pq].col,7,true);
   for(var pm=0;pm<PUMPS.length;pm++)blip(PUMPS[pm].x,PUMPS[pm].y,'#ffc83d',6,false);
   for(var ch2=0;ch2<cashes.length;ch2++){var ddx=(cashes[ch2].x-px)*k,ddy=(cashes[ch2].y-py)*k;if(Math.hypot(ddx,ddy)<half-12){m.fillStyle='#7be07b';m.beginPath();m.arc(ddx,ddy,3.5,0,Math.PI*2);m.fill()}}
