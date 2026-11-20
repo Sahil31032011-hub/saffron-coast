@@ -229,11 +229,69 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
 .btns button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700;cursor:pointer}
 .btns button.pri{background:var(--saffron);color:#1a1205;border-color:var(--saffron)}
 @media (max-width:480px){.help{grid-template-columns:1fr}#mmwrap{width:104px;height:104px}#obj{max-width:44vw;top:122px;left:auto;right:12px;transform:none;text-align:right}body.touch #obj{top:122px}}
+
+/* Firebase sign-in gate */
+#authGate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow-y:auto;padding:22px;background:radial-gradient(ellipse at 15% 10%,rgba(255,157,46,.16),transparent 42%),radial-gradient(ellipse at 90% 90%,rgba(39,211,181,.12),transparent 42%),#090d17;font-family:var(--font-b,Inter,system-ui,sans-serif);color:#eef0f7}
+#authGate[hidden]{display:none!important}
+.auth-card{width:min(100%,420px);padding:30px 26px;border:1px solid #35405b;border-radius:18px;background:rgba(21,27,43,.97);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.auth-mark{display:grid;place-items:center;width:52px;height:52px;margin-bottom:18px;border-radius:15px;background:linear-gradient(135deg,#ff9d2e,#27d3b5);color:#101522;font-family:var(--font-d);font-size:34px}
+.auth-card h2{margin:0 0 8px;font-family:var(--font-d);font-size:38px;font-weight:400;letter-spacing:1px;color:#ffb052}
+.auth-desc{margin:0 0 22px;color:#aab3ca;line-height:1.5;font-size:13px}
+.auth-field{margin:14px 0}
+.auth-field label{display:block;margin-bottom:7px;color:#d5daea;font-size:12px;font-weight:700}
+.auth-field input{width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid #39435c;border-radius:9px;background:#0d1321;color:#fff;font:14px var(--font-b,Inter,system-ui,sans-serif)}
+.auth-field input:focus{outline:2px solid rgba(255,157,46,.65);border-color:#ff9d2e}
+.auth-password{display:flex;gap:7px}
+.auth-password input{min-width:0;flex:1}
+.auth-password button,.auth-link{border:0;background:none;color:#ffbd72;font:600 12px var(--font-b,Inter,system-ui,sans-serif);cursor:pointer}
+.auth-primary{width:100%;margin-top:10px;padding:14px;border:0;border-radius:9px;background:linear-gradient(100deg,#ff9d2e,#27d3b5);color:#111722;font-weight:800;letter-spacing:1px;cursor:pointer}
+.auth-primary:disabled{opacity:.6;cursor:wait}
+.auth-actions{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:17px;color:#aab3ca;font-size:12px}
+.auth-message{min-height:18px;margin:15px 0 0;color:#ff8d8d;text-align:center;font-size:12px;line-height:1.45}
+.auth-message.success{color:#70e6ae}
+#accountBar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+#accountBar[hidden]{display:none!important}
+#accountBar strong{display:block;font-size:12px;color:var(--teal)}
+#accountBar small{display:block;max-width:210px;overflow-wrap:anywhere;color:var(--dim);font-size:10px}
+#accountLogout{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#101522;color:#ffbd72;font-weight:700;font-size:11px;cursor:pointer}
 </style>
 
 </head>
 <body>
 <main id="stage">
+
+  <section id="authGate" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <div class="auth-mark">SC</div>
+      <h2 id="authTitle">Welcome back</h2>
+      <p class="auth-desc" id="authDescription">Sign in to continue your drive.</p>
+      <form id="authForm">
+        <div class="auth-field" id="authNameField" hidden>
+          <label for="authName">Your name</label>
+          <input id="authName" type="text" autocomplete="name" placeholder="Enter your name">
+        </div>
+        <div class="auth-field">
+          <label for="authEmail">Email address</label>
+          <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </div>
+        <div class="auth-field">
+          <label for="authPassword">Password</label>
+          <div class="auth-password">
+            <input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
+            <button id="authShowPassword" type="button">Show</button>
+          </div>
+        </div>
+        <button class="auth-primary" id="authSubmit" type="submit">SIGN IN</button>
+      </form>
+      <div class="auth-actions">
+        <button class="auth-link" id="authForgot" type="button">Forgot password?</button>
+      </div>
+      <div class="auth-actions" id="authSwitchLine">
+        New to Saffron Coast? <button class="auth-link" id="authSwitch" type="button">Create account</button>
+      </div>
+      <p class="auth-message" id="authMessage" role="status" aria-live="polite"></p>
+    </div>
+  </section>
   <canvas id="c"></canvas>
 
   <div id="hud" class="hidden">
@@ -361,6 +419,11 @@ body.wheelmode #touch .tg:first-child{align-items:flex-end}
       <div id="mcash"></div>
       <div class="cars" id="cars"></div>
       <p id="mmsg"></p>
+
+      <div id="accountBar" hidden>
+        <div><strong id="accountName">Driver</strong><small id="accountEmail"></small></div>
+        <button id="accountLogout" type="button">SIGN OUT</button>
+      </div>
       <button class="go" id="start" type="button">START DRIVING</button>
       <div class="mrow"><button id="mhow" type="button">How to play</button><button id="mctl" type="button">Adjust controls</button></div>
       <ul class="help">
@@ -2112,6 +2175,7 @@ function frame(now){
 requestAnimationFrame(frame);
 })();
 </script>
+<script type="module" src="auth.js"></script>
 
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
